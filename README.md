@@ -1,1 +1,2 @@
-This is a web server that announces whether or not a particular Go version has been tagged.
+完全ランダム席替えwebアプリ
+https://classroom.coloreen.com
