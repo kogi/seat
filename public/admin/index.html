@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>seats</title>
+        <link rel="stylesheet" href="./style.css" />
+    </head>
+    <body>
+        <p class="title">ランダム席替え<span>beta</span></p>
+        <div id="create">
+            <div class="modify-div">
+                <div class="add">
+                    <p class="text">席を追加:</p>
+                    <input id="seat-input" type="number" />
+                    <button id="add-button" class="modify-button">+</button>
+                    <button id="clear-button" class="modify-button">クリア</button>
+                </div>
+                <div class="clear">
+                    <button id="create-button" class="create-button">クラスを作成</button>
+                </div>
+            </div>
+        </div>
+        <div class="code" id="code" style="display: none">
+            <p class="code-text" id="code-text">----</p>
+        </div>
+        <div class="front">
+            <p>黒板</p>
+            <div class="line"></div>
+        </div>
+        <div id="classroom"></div>
+
+        <footer>
+            <div><p>©ishi kogi. All rights reserved.</p></div>
+
+            <div>
+                <a href="https://github.com/kogi">Github</a>
+                <a href="https://coloreen.com/seat">About</a>
+            </div>
+        </footer>
+
+        <script src="./script.js"></script>
+    </body>
+</html>

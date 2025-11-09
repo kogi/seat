@@ -1,0 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c&display=swap");
+
+html {
+    width: 100svw;
+    height: 100svh;
+}
+
+body {
+    width: 100lvw;
+    height: 100svh;
+    padding: 0;
+    margin: 0;
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: rgb(247, 218, 147);
+    height: 5svh;
+}
+
+.title-text {
+    font-size: 1em;
+    font-weight: 700;
+}
+
+.introduce {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    height: 90svh;
+}
+
+button {
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    outline: none;
+    border: 2px solid #1293e9;
+    border-radius: 10px;
+    height: 20vh;
+    aspect-ratio: 1.68;
+    margin: 20px;
+    color: rgb(255, 102, 0);
+    background-color: #c9e0f0;
+    font-size: 2em;
+    cursor: pointer;
+}
+
+.contact{
+    color: black;
+    margin-left: 10px;
+}
+
+footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    position: fixed;
+    padding: 10px;
+    height: 5svh;
+    bottom: 0;
+    width: 100svw;
+    background-color: rgb(79, 100, 124);
+    color: aliceblue;
+}
+
+a {
+    width: 5em;
+    color: aliceblue;
+}

@@ -1,129 +1,209 @@
-// Copyright 2023 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-// Outyet is a web server that announces whether or not a particular Go version
-// has been tagged.
 package main
 
 import (
-	"expvar"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"html/template"
 	"log"
-	"net/http"
+	"math/rand"
+	"os"
+	"strconv"
 	"sync"
-	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Command-line flags.
-var (
-	httpAddr   = flag.String("addr", "0.0.0.0:8080", "Listen address")
-	pollPeriod = flag.Duration("poll", 5*time.Second, "Poll period")
-	version    = flag.String("version", "1.20", "Go version")
-)
+type student struct {
+	StudentNumber string `json:"student_number"`
+}
 
-const baseChangeURL = "https://go.googlesource.com/go/+/"
+type post struct {
+	Seatlength int   `json:"seatlength"`
+	Position   []int `json:"position"`
+}
+
+type classroom struct {
+	Seats        []int `json:"seats"`
+	Position     []int `json:"position"`
+	CurrentIndex int   `json:"currentIndex"`
+	Result       []int `json:"result"`
+}
+
+type store struct {
+	classrooms map[string]*classroom
+	mutex      sync.Mutex
+	filepath   string
+}
+
+func newStore(filepath string) *store {
+	store := &store{
+		classrooms: make(map[string]*classroom),
+		filepath:   filepath,
+	}
+
+	if err := store.load(); err != nil {
+		log.Printf("Error loading data, starting fresh: %v", err)
+	}
+
+	return store
+}
+
+func (s *store) load() error {
+	data, err := os.ReadFile(s.filepath)
+	if err != nil {
+		return err
+	}
+    if len(data) == 0 {
+        return nil
+    }
+	err = json.Unmarshal(data, &s.classrooms)
+	return err
+}
+
+func (s *store) createClassroom(classcode string, seatlength int, position []int) *classroom {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if class, exists := s.classrooms[classcode]; exists {
+		return class
+	}
+
+	seats := make([]int, seatlength)
+	for i := 0; i < seatlength; i++ {
+		seats[i] = i + 1
+	}
+	rand.Shuffle(len(seats), func(i, j int) {
+		seats[i], seats[j] = seats[j], seats[i]
+	})
+
+	newClass := &classroom{
+		Seats:        seats,
+		Position:     position,
+		CurrentIndex: 0,
+		Result:       make([]int, seatlength),
+	}
+
+	s.classrooms[classcode] = newClass
+
+	return newClass
+}
+
+func (s *store) getClassroom(classcode string) (*classroom, bool) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	class, exits := s.classrooms[classcode]
+
+	return class, exits
+}
+
+func (s *store) save() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	data, err := json.MarshalIndent(s.classrooms, "", "  ")
+	if err != nil {
+		log.Printf("Error marshaling data: %v", err)
+	}
+
+	os.WriteFile(s.filepath, data, 0644)
+}
 
 func main() {
+	addr := flag.String("addr", ":8080", "address to listen on")
 	flag.Parse()
-	changeURL := fmt.Sprintf("%sgo%s", baseChangeURL, *version)
-	http.Handle("/", NewServer(*version, changeURL, *pollPeriod))
-	log.Printf("serving http://%s", *httpAddr)
-	log.Fatal(http.ListenAndServe(*httpAddr, nil))
-}
 
-// Exported variables for monitoring the server.
-// These are exported via HTTP as a JSON object at /debug/vars.
-var (
-	hitCount       = expvar.NewInt("hitCount")
-	pollCount      = expvar.NewInt("pollCount")
-	pollError      = expvar.NewString("pollError")
-	pollErrorCount = expvar.NewInt("pollErrorCount")
-)
+	file := "./db.json"
 
-// Server implements the outyet server.
-// It serves the user interface (it's an http.Handler)
-// and polls the remote repository for changes.
-type Server struct {
-	version string
-	url     string
-	period  time.Duration
+	route := gin.Default()
 
-	mu  sync.RWMutex // protects the yes variable
-	yes bool
-}
+	route.Static("/app", "./public")
 
-// NewServer returns an initialized outyet server.
-func NewServer(version, url string, period time.Duration) *Server {
-	s := &Server{version: version, url: url, period: period}
-	go s.poll()
-	return s
-}
+	store := newStore(file)
 
-// poll polls the change URL for the specified period until the tag exists.
-// Then it sets the Server's yes field true and exits.
-func (s *Server) poll() {
-	for !isTagged(s.url) {
-		pollSleep(s.period)
-	}
-	s.mu.Lock()
-	s.yes = true
-	s.mu.Unlock()
-	pollDone()
-}
 
-// Hooks that may be overridden for integration tests.
-var (
-	pollSleep = time.Sleep
-	pollDone  = func() {}
-)
+	// create classroom from /admin
+	route.POST("/create", func(c *gin.Context) {
+		var body post
+		if err := c.BindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			log.Printf("Error binding JSON: %v", err)
+			return
+		}
+		var classcode = strconv.Itoa(rand.Intn(9000) + 1000)
 
-// isTagged makes an HTTP HEAD request to the given URL and reports whether it
-// returned a 200 OK response.
-func isTagged(url string) bool {
-	pollCount.Add(1)
-	r, err := http.Head(url)
+		_ = store.createClassroom(classcode, body.Seatlength, body.Position)
+		store.save()
+
+		c.JSON(200, gin.H{"message": classcode})
+	})
+
+
+	//return classroom data (json)
+	route.GET("/classroom/:classcode", func(c *gin.Context) {
+		var classcode = c.Param("classcode")
+		class, exists := store.getClassroom(classcode)
+		if !exists {
+			c.JSON(404, gin.H{"error": "Classroom not found"})
+			return
+		}
+		c.JSON(200, class)
+	})
+
+	//receive student number from /user
+	route.POST("/classroom/:classcode", func(c *gin.Context) {
+		var student student
+		if err := c.BindJSON(&student); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			log.Printf("Error binding JSON: %v", err)
+			return
+		}
+		studentNumber, err := strconv.Atoi(student.StudentNumber)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request"})
+			log.Printf("Error convert student number to int: %v", err)
+			return
+		}
+		var classcode = c.Param("classcode")
+
+        store.mutex.Lock()
+        defer store.mutex.Unlock()
+		var class, exists = store.classrooms[classcode]
+        if !exists {
+            c.JSON(404, gin.H{"error": "Classroom not found"})
+            return
+        }
+
+		if studentNumber < 1 || studentNumber > len(class.Result) {
+			c.JSON(200, gin.H{"error": "Invalid student number. It is out of range."})
+			return
+		}
+
+		if class.Result[studentNumber-1] != 0 {
+			// if seat already be allocated, just return the result with index:-1
+			// Because index is just for debug, not used in production.
+			c.JSON(200, gin.H{"message": class.Result[studentNumber-1], "index": -1})
+			return
+		}
+
+        if class.CurrentIndex >= len(class.Seats) {
+			c.JSON(200, gin.H{"error": "No more seats available"})
+            return
+        }
+
+		class.Result[studentNumber-1] = class.Seats[class.CurrentIndex]
+		class.CurrentIndex++
+		store.save()
+		c.JSON(200, gin.H{"message": class.Result[studentNumber-1], "index": store.classrooms[classcode].CurrentIndex - 1})
+	})
+
+	route.GET("/", func(ctx *gin.Context) {
+		ctx.Redirect(301, "/app")
+	})
+
+	fmt.Println("Listening on", *addr)
+	err := route.Run(*addr)
 	if err != nil {
-		log.Print(err)
-		pollError.Set(err.Error())
-		pollErrorCount.Add(1)
-		return false
-	}
-	return r.StatusCode == http.StatusOK
-}
-
-// ServeHTTP implements the HTTP user interface.
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	hitCount.Add(1)
-	s.mu.RLock()
-	data := struct {
-		URL     string
-		Version string
-		Yes     bool
-	}{
-		s.url,
-		s.version,
-		s.yes,
-	}
-	s.mu.RUnlock()
-	err := tmpl.Execute(w, data)
-	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 	}
 }
-
-// tmpl is the HTML template that drives the user interface.
-var tmpl = template.Must(template.New("tmpl").Parse(`
-<!DOCTYPE html><html><body><center>
-	<h2>Is Go {{.Version}} out yet?</h2>
-	<h1>
-	{{if .Yes}}
-		<a href="{{.URL}}">YES!</a>
-	{{else}}
-		No. :-(
-	{{end}}
-	</h1>
-</center></body></html>
-`))
