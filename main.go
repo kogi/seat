@@ -9,9 +9,11 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type student struct {
@@ -64,13 +66,15 @@ func (s *store) load() error {
 	return err
 }
 
-func (s *store) createClassroom(classcode string, seatlength int, position []int, specificSeat []int) *classroom {
+func (s *store) createClassroom(seatlength int, position []int, specificSeat []int) string {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if class, exists := s.classrooms[classcode]; exists {
-		return class
+	uuidv1, err := uuid.NewUUID()
+	if err != nil {
+		log.Printf("Error generating UUID: %v", err)
 	}
+	var classcode = strings.Split(uuidv1.String(), "-")[0][0:5]
 
 	seats := make([]int, seatlength)
 	for i := 0; i < seatlength; i++ {
@@ -90,7 +94,7 @@ func (s *store) createClassroom(classcode string, seatlength int, position []int
 
 	s.classrooms[classcode] = newClass
 
-	return newClass
+	return classcode
 }
 
 func (s *store) getClassroom(classcode string) (*classroom, bool) {
@@ -136,7 +140,7 @@ func main() {
 		}
 		var classcode = strconv.Itoa(rand.Intn(9000) + 1000)
 
-		_ = store.createClassroom(classcode, body.Seatlength, body.Position, body.SpecificSeat)
+		classcode = store.createClassroom(body.Seatlength, body.Position, body.SpecificSeat)
 		store.save()
 
 		c.JSON(200, gin.H{"message": classcode})
