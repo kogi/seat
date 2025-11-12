@@ -4,19 +4,43 @@ const seatInput = document.getElementById("seat-input");
 const myclassroom = document.getElementById("classroom");
 const createBtn = document.getElementById("create-button");
 
+let isSpecific = false;
+
 let position = [];
+let specificSeat = [];
+
+myclassroom.addEventListener("click", (e) => {
+    console.log(e.target);
+    const ele = e.target;
+    if (ele.name === "seat-div") {
+        modeToSpecific(ele);
+    } else if (ele.name === "seat") {
+        modeToSpecific(ele.parentElement);
+    }
+});
+
+function modeToSpecific(ele) {
+    console.log(ele.className);
+    if (ele.className.includes("spe")) {
+        specificSeat.splice(specificSeat.indexOf(parseInt(ele.id * 1 + 1)), 1);
+        ele.classList.remove("spe");
+    } else {
+        specificSeat.push(parseInt(ele.id * 1 + 1));
+        ele.classList.add("spe");
+    }
+}
 
 addBtn.addEventListener("click", (e) => {
     if (!(seatInput.value >= 1)) {
         return false;
     }
     position.push(parseInt(seatInput.value));
-    generateRow(position);
+    generateRow(position, specificSeat);
 });
 
 clearBtn.addEventListener("click", (e) => {
     position = [];
-    generateRow(position);
+    generateRow(position, specificSeat);
 });
 
 seatInput.addEventListener("keyup", (e) => {
@@ -29,7 +53,8 @@ createBtn.addEventListener("click", (e) => {
     createClassroom(position);
 });
 
-function generateRow(position) {
+function generateRow(position, specificSeat) {
+    console.log(specificSeat);
     const max = getMax(position);
     let seatStyle;
     let fontSize;
@@ -55,11 +80,17 @@ function generateRow(position) {
         for (let i = 0; i < position[j]; i++) {
             let div = document.createElement("div");
             div.className = "seat";
+            if (specificSeat.includes(currentIndex)) {
+                div.classList.add("spe");
+            }
+            div.id = String(currentIndex);
             div.id = currentIndex;
             div.style = seatStyle;
+            div.name = "seat-div";
             let p = document.createElement("p");
             p.innerHTML = currentIndex + 1;
             p.style.fontSize = fontSize + "px";
+            p.name = "seat";
             div.appendChild(p);
             rowDiv.appendChild(div);
             currentIndex++;
@@ -86,6 +117,7 @@ function createClassroom(p) {
         body: JSON.stringify({
             seatlength: parseInt(seatlength),
             position: position,
+            specificSeat: specificSeat,
         }),
     })
         .then((res) => {
@@ -188,13 +220,13 @@ window.addEventListener("load", (e) => {
                     location.href = "/";
                     return;
                 } else {
-                    generateRow(data.position);
+                    generateRow(data.position, data.specificSeat);
                     showCode(search.get("code"));
                 }
             });
     }
 });
 
-document.getElementsByClassName("title")[0].addEventListener("click", ()=>{
-    location.href = "/"
-})
+document.getElementsByClassName("title")[0].addEventListener("click", () => {
+    location.href = "/";
+});

@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"slices"
 	"strconv"
 	"sync"
 
@@ -15,16 +16,19 @@ import (
 
 type student struct {
 	StudentNumber string `json:"student_number"`
+	SpecificSeat  int    `json:"specific_seat"`
 }
 
 type post struct {
-	Seatlength int   `json:"seatlength"`
-	Position   []int `json:"position"`
+	Seatlength   int   `json:"seatlength"`
+	Position     []int `json:"position"`
+	SpecificSeat []int `json:"specificSeat"`
 }
 
 type classroom struct {
 	Seats        []int `json:"seats"`
 	Position     []int `json:"position"`
+	SpecificSeat []int `json:"specificSeat"`
 	CurrentIndex int   `json:"currentIndex"`
 	Result       []int `json:"result"`
 }
@@ -53,14 +57,14 @@ func (s *store) load() error {
 	if err != nil {
 		return err
 	}
-    if len(data) == 0 {
-        return nil
-    }
+	if len(data) == 0 {
+		return nil
+	}
 	err = json.Unmarshal(data, &s.classrooms)
 	return err
 }
 
-func (s *store) createClassroom(classcode string, seatlength int, position []int) *classroom {
+func (s *store) createClassroom(classcode string, seatlength int, position []int, specificSeat []int) *classroom {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -79,6 +83,7 @@ func (s *store) createClassroom(classcode string, seatlength int, position []int
 	newClass := &classroom{
 		Seats:        seats,
 		Position:     position,
+		SpecificSeat: specificSeat,
 		CurrentIndex: 0,
 		Result:       make([]int, seatlength),
 	}
@@ -121,7 +126,6 @@ func main() {
 
 	store := newStore(file)
 
-
 	// create classroom from /admin
 	route.POST("/create", func(c *gin.Context) {
 		var body post
@@ -132,12 +136,11 @@ func main() {
 		}
 		var classcode = strconv.Itoa(rand.Intn(9000) + 1000)
 
-		_ = store.createClassroom(classcode, body.Seatlength, body.Position)
+		_ = store.createClassroom(classcode, body.Seatlength, body.Position, body.SpecificSeat)
 		store.save()
 
 		c.JSON(200, gin.H{"message": classcode})
 	})
-
 
 	//return classroom data (json)
 	route.GET("/classroom/:classcode", func(c *gin.Context) {
@@ -154,25 +157,24 @@ func main() {
 	route.POST("/classroom/:classcode", func(c *gin.Context) {
 		var student student
 		if err := c.BindJSON(&student); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid request"})
+			c.JSON(200, gin.H{"error": "Invalid request"})
 			log.Printf("Error binding JSON: %v", err)
 			return
 		}
 		studentNumber, err := strconv.Atoi(student.StudentNumber)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "Invalid request"})
-			log.Printf("Error convert student number to int: %v", err)
-			return
+			c.JSON(200, gin.H{"error": "Invalid request"})
+
 		}
 		var classcode = c.Param("classcode")
 
-        store.mutex.Lock()
-        defer store.mutex.Unlock()
+		// store.mutex.Lock()
+		// defer store.mutex.Unlock()
 		var class, exists = store.classrooms[classcode]
-        if !exists {
-            c.JSON(404, gin.H{"error": "Classroom not found"})
-            return
-        }
+		if !exists {
+			c.JSON(200, gin.H{"error": "Classroom not found"})
+			return
+		}
 
 		if studentNumber < 1 || studentNumber > len(class.Result) {
 			c.JSON(200, gin.H{"error": "Invalid student number. It is out of range."})
@@ -186,13 +188,29 @@ func main() {
 			return
 		}
 
-        if class.CurrentIndex >= len(class.Seats) {
+		if class.CurrentIndex >= len(class.Result) {
 			c.JSON(200, gin.H{"error": "No more seats available"})
-            return
-        }
+			return
+		}
 
-		class.Result[studentNumber-1] = class.Seats[class.CurrentIndex]
-		class.CurrentIndex++
+		log.Println(student.SpecificSeat)
+
+		if student.SpecificSeat != -1 {
+			if slices.Contains(class.SpecificSeat, student.SpecificSeat) {
+				class.Result[studentNumber-1] = student.SpecificSeat
+				seatIndex := slices.Index(class.SpecificSeat, student.SpecificSeat)
+				class.SpecificSeat = slices.Delete(class.SpecificSeat, seatIndex, seatIndex+1)
+				seatIndex = slices.Index(class.Seats, student.SpecificSeat)
+				class.SpecificSeat = slices.Delete(class.Seats, seatIndex, seatIndex+1)
+			} else {
+				c.JSON(200, gin.H{"error": "No permission"})
+				return
+			}
+		} else {
+			class.Result[studentNumber-1] = class.Seats[class.CurrentIndex]
+			class.CurrentIndex++
+		}
+
 		store.save()
 		c.JSON(200, gin.H{"message": class.Result[studentNumber-1], "index": store.classrooms[classcode].CurrentIndex - 1})
 	})

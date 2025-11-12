@@ -2,10 +2,11 @@
 # see: https://developers.google.com/idx/guides/customize-idx-env
 { pkgs, ... }: {
   # Which nixpkgs channel to use.
-  channel = "stable-23.11"; # or "unstable"
+  channel = "unstable"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.go
+    pkgs.gcc
     pkgs.nodejs_20
     pkgs.nodePackages.nodemon
   ];
@@ -33,7 +34,7 @@
             "--signal" "SIGHUP"
             "-w" "."
             "-e" "go,html"
-            "-x" "go run main.go -addr localhost:$PORT"
+"-x" "go run main.go -addr localhost:$PORT"
           ];
           manager = "web";
         };

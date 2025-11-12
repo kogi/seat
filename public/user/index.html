@@ -15,16 +15,28 @@
         </div>
         <div class="input" id="code-input">
             <div class="number">
-                <label for="number">コード:</label>
-                <input id="classcode" type="number" />
+                <div class="input-gr">
+                    <label for="number">コード:</label>
+                    <input id="classcode" type="number" />
+                </div>
             </div>
 
             <button type="button" id="participate">参加</button>
         </div>
         <div class="input" id="number-input" style="display: none; opacity: 0">
-            <div class="number">
-                <label for="student-number">出席番号:</label>
-                <input id="student-number" type="number" />
+            <div class="mode" id="mode">
+                <button class="mode-button selected" name="rand">抽選</button>
+                <button class="mode-button" name="spe">指定</button>
+            </div>
+            <div class="number" id="info-input">
+                <div class="input-gr">
+                    <label for="student-number" id="info-label">出席番号:</label>
+                    <input id="student-number" type="number" />
+                </div>
+                <div id="spe-input" class="input-gr" style="opacity: 0;">
+                    <label for="seat-number">座席番号</label>
+                    <input type="number" id="seat-number" />
+                </div>
             </div>
 
             <button type="button" id="send">抽選</button>

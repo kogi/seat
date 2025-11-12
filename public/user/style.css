@@ -14,10 +14,18 @@ body {
 
 .number {
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 5svh 0 5svh 0;
+    transition: 0.5s;
+}
+
+.input-gr{
+    display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    margin: 0 0 10svh 0;
 }
 
 .title {
@@ -34,13 +42,33 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 20svh;
+    height: 10svh;
     width: 100%;
 }
 
 .error {
     font-size: 2rem;
     color: rgb(245, 63, 63);
+}
+
+.mode{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #1293e9;
+    border-radius: 11px;
+}
+
+.selected {
+    background-color: #c9e0f0 !important;
+}
+
+.mode-button{
+    border: 0;
+    background-color: #00000000;
+    margin: 0;
+    transition: 0.5s;
 }
 
 .title-p > span {
@@ -53,9 +81,9 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 40%;
+    height: 60%;
     width: 100%;
-    transition: 0.3s;
+    transition: 0.5s;
 }
 
 input {
@@ -98,6 +126,7 @@ button {
     background-color: #c9e0f0;
     color: rgb(255, 102, 0);
     cursor: pointer;
+    transition: 0.5s;
 }
 
 .show{

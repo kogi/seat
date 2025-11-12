@@ -20,6 +20,8 @@ body {
 
     user-select: none;
     scrollbar-width: 0;
+
+    overflow: hidden;
 }
 
 .title {
@@ -85,7 +87,32 @@ input::-webkit-outer-spin-button {
     margin: 0 !important;
 }
 
-#seat-input {
+.add-div{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.spe-div{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0 0 0 20px;
+}
+.spe-div > p{
+    margin-bottom: 5px;
+}
+
+.spe-button{
+    aspect-ratio: 2.5;
+    height: calc(5vh + 4px);
+    font-size: 1.1rem;
+}
+
+.seat-input {
     font-family: "M PLUS Rounded 1c", sans-serif;
     font-weight: 400;
     font-style: normal;
@@ -103,12 +130,17 @@ input::-webkit-outer-spin-button {
     user-select: auto;
 }
 
+.spe {
+    background-color: #51abe7 !important;
+}
+
 #create {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 25svh;
+    margin-top: 8svh;
+    height: 17svh;
     transition: 0.3s;
 }
 
@@ -132,6 +164,7 @@ input::-webkit-outer-spin-button {
     justify-content: center;
     align-items: center;
     height: 15svh;
+    margin-top: 8svh;
 }
 
 .code-text {
